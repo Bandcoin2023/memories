@@ -7,6 +7,7 @@ import {
   PostCardSkeleton,
   PostList,
 } from "./_components/posts";
+import { ConnectWallet } from "./_components/wallet-connect";
 
 export default function HomePage() {
   prefetch(trpc.post.all.queryOptions());
@@ -19,6 +20,7 @@ export default function HomePage() {
             Create <span className="text-primary">T3</span> Turbo
           </h1>
           <AuthShowcase />
+          <ConnectWallet />
 
           <CreatePostForm />
           <div className="w-full max-w-2xl overflow-y-scroll">
