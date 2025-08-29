@@ -30,6 +30,8 @@ export function CreatePostForm() {
     defaultValues: {
       content: "",
       title: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 
