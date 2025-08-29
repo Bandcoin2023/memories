@@ -2,7 +2,6 @@
 
 import type React from "react";
 import { useState } from "react";
-import { toast } from "@/hooks/use-toast";
 import {
   Check,
   Copy,
@@ -21,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@acme/ui/dialog";
+import { toast } from "@acme/ui/toast";
 
 interface ShareModalProps {
   memoryTitle: string;
@@ -41,10 +41,11 @@ export function ShareModal({
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast({
-        title: "Link copied!",
-        description: "The memory link has been copied to your clipboard.",
-      });
+      // toast({
+      //   title: "Link copied!",
+      //   description: "The memory link has been copied to your clipboard.",
+      // });
+      toast.success("Link copied!");
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy link:", err);

@@ -30,7 +30,8 @@
     "./tabs": "./src/tabs.tsx",
     "./theme": "./src/theme.tsx",
     "./textarea": "./src/textarea.tsx",
-    "./toast": "./src/toast.tsx"
+    "./toast": "./src/toast.tsx",
+    "./skeleton": "./src/skeleton.tsx"
   },
   "license": "MIT",
   "scripts": {
