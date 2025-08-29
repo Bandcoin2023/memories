@@ -26,6 +26,7 @@
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
     "auth-client": "https://github.com/action-token/action-auth/releases/download/v1.0.1/auth-client-1.0.1.tgz",
+    "lucide-react": "^0.542.0",
     "next": "^15.3.3",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",

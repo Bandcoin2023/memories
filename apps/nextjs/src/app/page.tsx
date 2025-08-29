@@ -1,43 +1,54 @@
-import { Suspense } from "react";
+"use client";
 
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
-import { AuthShowcase } from "./_components/auth-showcase";
-import {
-  CreatePostForm,
-  PostCardSkeleton,
-  PostList,
-} from "./_components/posts";
-import { ConnectWallet } from "./_components/wallet-connect";
+import { useState } from "react";
+import { Home, Plus, User } from "lucide-react";
+
+import { Header } from "./_components/header";
+import { LeftSidebar } from "./_components/left-sidebar";
+import { MainFeed } from "./_components/main-feed";
+import { MobileBottomNav } from "./_components/mobile-bottom-nav";
+import { MobileHeader } from "./_components/mobile-header";
+import { RightSidebar } from "./_components/right-sidebar";
 
 export default function HomePage() {
-  prefetch(trpc.post.all.queryOptions());
+  const [activeTab, setActiveTab] = useState("home");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleMobileSearch = () => {
+    // Toggle search functionality for mobile
+    console.log(" Mobile search triggered");
+  };
 
   return (
-    <HydrateClient>
-      <main className="container h-screen py-16">
-        <div className="flex flex-col items-center justify-center gap-4">
-          <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-            Create <span className="text-primary">T3</span> Turbo
-          </h1>
-          <AuthShowcase />
-          <ConnectWallet />
+    <div className="min-h-screen bg-background">
+      <div className="supports-[backdrop-filter]:bg-card/600 sticky top-0 z-50 hidden w-full border-b bg-card/95 backdrop-blur md:block">
+        <Header
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onSearch={setSearchQuery}
+        />
+      </div>
 
-          <CreatePostForm />
-          <div className="w-full max-w-2xl overflow-y-scroll">
-            <Suspense
-              fallback={
-                <div className="flex w-full flex-col gap-4">
-                  <PostCardSkeleton />
-                  <PostCardSkeleton />
-                  <PostCardSkeleton />
-                </div>
-              }
-            >
-              <PostList />
-            </Suspense>
-          </div>
+      <MobileHeader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        searchQuery={searchQuery}
+        onSearch={setSearchQuery}
+      />
+
+      <div className="relative">
+        <div className="hidden md:block">
+          <LeftSidebar />
         </div>
-      </main>
-    </HydrateClient>
+
+        <div className="pb-20 md:ml-80 md:mr-80 md:pb-0">
+          <MainFeed activeTab={activeTab} searchQuery={searchQuery} />
+        </div>
+
+        <div className="hidden md:block">
+          <RightSidebar />
+        </div>
+      </div>
+    </div>
   );
 }
