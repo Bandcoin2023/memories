@@ -8,7 +8,7 @@
     "clean": "git clean -xdf .cache .next .turbo node_modules",
     "dev": "pnpm with-env next dev --turbopack",
     "format": "prettier --check . --ignore-path ../../.gitignore",
-    "log-env": "echo \"=== Environment Variables (.env file) ===\" && type ../../.env || echo \"No .env file found\"",
+    "log-env": "echo \"=== DATABASE_URL from process.env ===\" && node -e \"console.log('DATABASE_URL:', process.env.DATABASE_URL || 'not found')\"",
     "lint": "eslint",
     "start": "pnpm with-env next start",
     "typecheck": "tsc --noEmit",

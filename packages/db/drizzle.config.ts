@@ -7,5 +7,4 @@ export default {
     url: process.env.DATABASE_URL!,
     authToken: process.env.DATABASE_AUTH_TOKEN,
   },
-  // tablesFilter: ["action-auth-starter_*"],
 } satisfies Config;
