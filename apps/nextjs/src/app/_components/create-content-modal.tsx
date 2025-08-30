@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Camera,
   Coins,
@@ -27,6 +28,9 @@ import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
 import { Switch } from "@acme/ui/switch";
 import { Textarea } from "@acme/ui/textarea";
+import { toast } from "@acme/ui/toast";
+
+import { useTRPC } from "~/trpc/react";
 
 interface CreateContentModalProps {
   type: "photobook" | "audiobook" | "memory";
@@ -34,9 +38,7 @@ interface CreateContentModalProps {
 }
 
 interface MediaItem {
-  id: string;
   type: "image" | "video" | "audio";
-  name: string;
   url: string;
 }
 
@@ -51,6 +53,37 @@ export function CreateContentModal({
   const [nftPrice, setNftPrice] = useState("");
   const [royaltyPercentage, setRoyaltyPercentage] = useState("10");
   const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const createMemory = useMutation(
+    trpc.memory.create.mutationOptions({
+      onSuccess: async () => {
+        // Reset form
+        setTitle("");
+        setDescription("");
+        setMediaItems([]);
+        setNftPrice("");
+        setRoyaltyPercentage("10");
+        setOpen(false);
+
+        // Invalidate memory queries to refresh the feed
+        await queryClient.invalidateQueries(trpc.memory.pathFilter());
+
+        toast.success("Memory created successfully!");
+      },
+      onError: (err) => {
+        console.error("Error creating memory:", err);
+        toast.error(
+          err.data?.code === "UNAUTHORIZED"
+            ? "You must be logged in to create memories"
+            : "Failed to create memory. Please try again.",
+        );
+      },
+    }),
+  );
 
   const getTypeConfig = () => {
     switch (type) {
@@ -93,7 +126,7 @@ export function CreateContentModal({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (mediaItems.length + files.length > 5) {
-      alert("You can only add up to 5 items");
+      toast.error("You can only add up to 5 items");
       return;
     }
 
@@ -106,9 +139,7 @@ export function CreateContentModal({
           : "audio";
 
       const newItem: MediaItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        type: mediaType,
-        name: file.name,
+        type: mediaType as "image" | "video" | "audio",
         url,
       };
 
@@ -116,8 +147,8 @@ export function CreateContentModal({
     });
   };
 
-  const removeMediaItem = (id: string) => {
-    setMediaItems((prev) => prev.filter((item) => item.id !== id));
+  const removeMediaItem = (index: number) => {
+    setMediaItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,25 +156,27 @@ export function CreateContentModal({
     if (!title.trim() || mediaItems.length === 0 || (isNFT && !nftPrice.trim()))
       return;
 
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log(" Creating NFT content:", {
+    const memoryData = {
+      memory: {
         type,
-        title,
-        description,
-        mediaItems,
-        isNFT,
-        nftPrice: Number.parseFloat(nftPrice),
-      });
-      setIsLoading(false);
-      // Reset form
-      setTitle("");
-      setDescription("");
-      setMediaItems([]);
-      setNftPrice("");
-      // In real app, close modal and refresh feed
-    }, 1000);
+        title: title.trim(),
+        description: description.trim(),
+        location: null, // You can add location functionality later
+      },
+      mediaItems: mediaItems.map((item) => ({
+        url: item.url,
+        type: item.type,
+      })),
+      nft: isNFT
+        ? {
+            price: Math.round(parseFloat(nftPrice) * 1000000), // Convert to microbandcoin or similar
+            royalty: parseInt(royaltyPercentage),
+            blockchain: "bandchain",
+          }
+        : undefined,
+    };
+
+    createMemory.mutate(memoryData);
   };
 
   const getMediaIcon = (mediaType: string) => {
@@ -160,7 +193,7 @@ export function CreateContentModal({
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto p-4 sm:w-full sm:max-w-2xl sm:p-6">
         <DialogHeader className="pb-4">
@@ -297,14 +330,14 @@ export function CreateContentModal({
                       : "grid-cols-2 sm:grid-cols-3"
                 }`}
               >
-                {mediaItems.map((item) => (
-                  <Card key={item.id} className="group relative">
+                {mediaItems.map((item, index) => (
+                  <Card key={index} className="group relative">
                     <CardContent className="p-2 sm:p-3">
                       <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-muted">
                         {item.type === "image" ? (
                           <img
                             src={item.url || "/placeholder.svg"}
-                            alt={item.name}
+                            alt={`Media ${index + 1}`}
                             className="h-full w-full object-cover"
                           />
                         ) : item.type === "video" ? (
@@ -317,7 +350,7 @@ export function CreateContentModal({
                           <div className="flex flex-col items-center space-y-1 p-2 sm:space-y-2">
                             <Music className="h-6 w-6 text-muted-foreground sm:h-8 sm:w-8" />
                             <span className="w-full truncate text-center text-xs">
-                              {item.name}
+                              Audio File
                             </span>
                           </div>
                         )}
@@ -327,7 +360,7 @@ export function CreateContentModal({
                           variant="destructive"
                           size="sm"
                           className="absolute right-1 top-1 h-6 w-6 p-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                          onClick={() => removeMediaItem(item.id)}
+                          onClick={() => removeMediaItem(index)}
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -335,7 +368,9 @@ export function CreateContentModal({
 
                       <div className="mt-2 hidden items-center space-x-1 sm:flex">
                         {getMediaIcon(item.type)}
-                        <span className="truncate text-xs">{item.name}</span>
+                        <span className="truncate text-xs">
+                          {item.type} file
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -369,6 +404,7 @@ export function CreateContentModal({
               type="button"
               variant="outline"
               className="w-full bg-transparent sm:w-auto"
+              onClick={() => setOpen(false)}
             >
               Cancel
             </Button>
@@ -378,11 +414,11 @@ export function CreateContentModal({
                 !title.trim() ||
                 mediaItems.length === 0 ||
                 (isNFT && !nftPrice.trim()) ||
-                isLoading
+                createMemory.isPending
               }
               className="w-full sm:w-auto"
             >
-              {isLoading
+              {createMemory.isPending
                 ? "Minting..."
                 : `Mint ${type.charAt(0).toUpperCase() + type.slice(1)} NFT`}
             </Button>
