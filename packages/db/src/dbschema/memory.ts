@@ -9,7 +9,8 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-import { createTable, user } from "./auth-schema";
+import { createTable } from ".";
+import { user } from "./auth-schema";
 
 export const memories = createTable("memories", {
   id: text("id").primaryKey(),

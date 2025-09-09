@@ -13,7 +13,11 @@ import {
   Transaction,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import { APIError, createAuthEndpoint } from "better-auth/api";
+import {
+  APIError,
+  createAuthEndpoint,
+  sessionMiddleware,
+} from "better-auth/api";
 import { createAuthMiddleware } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -319,7 +323,7 @@ export const stellar = (opts: StellarPluginOptions) => {
               .set({ loginType: wallet_type || "stellar" })
               .where(eq(Session.id, session.id));
 
-            console.log("verify session", session);
+            // console.log("verify session", session);
 
             if (!session) {
               throw new APIError("INTERNAL_SERVER_ERROR", {
@@ -345,16 +349,69 @@ export const stellar = (opts: StellarPluginOptions) => {
           }
         },
       ),
+
+      // POST /stellar/sign-custodial
+      signCustodial: createAuthEndpoint(
+        "/stellar/sign-custodial",
+        {
+          method: "POST",
+          requireHeaders: true,
+          use: [sessionMiddleware],
+          body: z.object({
+            xdr: z.string().min(1),
+          }),
+        },
+        async (ctx) => {
+          // console.log("here i", ctx.s);
+          try {
+            const { xdr } = ctx.body;
+
+            // Get current user from session
+            const session = ctx.context.session;
+            if (!session?.user) {
+              throw new APIError("UNAUTHORIZED", {
+                message: "not_authenticated",
+              });
+            }
+
+            // Check if user has a custodial account
+            if (!session.user.isCustodial || !session.user.email) {
+              throw new APIError("BAD_REQUEST", {
+                message: "not_custodial_account",
+              });
+            }
+
+            return;
+            // Import CustodialService here or make it accessible
+            // For now, I'll assume you'll import it at the top of this file
+            const signedXdr = "ami"; // await CustodialService.signTransaction(
+            // session.user.email,
+            // xdr,
+            // );
+
+            return ctx.json({
+              signedXdr,
+              publicKey: session.user.stellarPublicKey,
+            });
+          } catch (e: any) {
+            ctx.context.logger.error("stellar_custodial_sign_failed", e);
+            if (e instanceof APIError) throw e;
+            throw new APIError("INTERNAL_SERVER_ERROR", {
+              message: "custodial_signing_failed",
+            });
+          }
+        },
+      ),
     },
     hooks: {
       after: [
         {
           matcher: (ctx: HookEndpointContext) => ctx.path === "/stellar/verify",
           handler: createAuthMiddleware(async (ctx) => {
-            console.log("ctx xxx", ctx);
+            // console.log("ctx xxx", ctx);
             try {
               const session = ctx.context.newSession;
-              console.log("session", session);
+              // console.log("session", session);
               if (session?.user?.id) {
                 const userId = session.user.id;
                 const body = ctx.body as any;

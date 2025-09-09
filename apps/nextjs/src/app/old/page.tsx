@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { getSession } from "~/auth/server";
 import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 import { AuthShowcase } from "../_components/auth-showcase";
 import {
@@ -8,9 +9,12 @@ import {
   PostList,
 } from "../_components/posts";
 import { ConnectWallet } from "../_components/wallet-connect";
+import { TestTokenCreate } from "./create-token-form";
 
-export default function HomePage() {
+export default async function HomePage() {
   prefetch(trpc.post.all.queryOptions());
+  const session = await getSession();
+  console.log("Session:", session);
 
   return (
     <HydrateClient>
@@ -21,7 +25,7 @@ export default function HomePage() {
           </h1>
           <AuthShowcase />
           <ConnectWallet />
-
+          <TestTokenCreate pubkey={session?.user.stellarPublicKey} />
           <CreatePostForm />
           <div className="w-full max-w-2xl overflow-y-scroll">
             <Suspense

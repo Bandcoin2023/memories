@@ -10,12 +10,15 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
+    // MOTHER_SECRET: z.string().length(56),
   },
   /**
    * Specify your server-side environment variables schema here.
    * This way you can ensure the app isn't built with invalid env vars.
    */
-  server: {},
+  server: {
+    // MOTHER_SECRET: z.string().length(56),
+  },
 
   /**
    * Specify your client-side environment variables schema here.
@@ -29,6 +32,7 @@ export const env = createEnv({
    */
   experimental__runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    // MOTHER_SECRET: process.env.MOTHER_SECRET,
 
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
