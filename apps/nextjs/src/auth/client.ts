@@ -1,6 +1,3 @@
-import { stellarClient } from "auth-client";
-import { createAuthClient } from "better-auth/react";
+import { createClient } from "@acme/auth";
 
-export const authClient = createAuthClient({
-  plugins: [stellarClient()],
-});
+export const authClient = createClient();

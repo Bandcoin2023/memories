@@ -25,7 +25,7 @@ export default async function HomePage() {
           </h1>
           <AuthShowcase />
           <ConnectWallet />
-          <TestTokenCreate pubkey={session?.user.stellarPublicKey} />
+          <TestTokenCreate pubkey={session?.user.stellarPublicKey ?? ""} />
           <CreatePostForm />
           <div className="w-full max-w-2xl overflow-y-scroll">
             <Suspense

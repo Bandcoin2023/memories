@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AuthModal } from "auth-client";
 
-import "auth-client/styles";
+import { AuthModal } from "@acme/auth";
 
 import { authClient } from "~/auth/client";
 
@@ -21,7 +20,6 @@ export function ConnectWallet() {
       <AuthModal
         open={open}
         onClose={() => setOpen(false)}
-        // @ts-expect-error maybe typeerror
         client={authClient}
       />
     </>

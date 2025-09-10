@@ -1,5 +1,11 @@
 {
   "extends": "@acme/tsconfig/base.json",
   "include": ["src", "*.ts"],
+  "compilerOptions": {
+    "jsx": "react-jsx", // or "react" for older React versions
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
+  },
   "exclude": ["node_modules"]
 }

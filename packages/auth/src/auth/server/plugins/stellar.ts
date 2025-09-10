@@ -1,9 +1,11 @@
+import type { BetterAuthPlugin } from "better-auth";
+import {
+  APIError,
+  createAuthEndpoint,
+  sessionMiddleware,
+} from "better-auth/api";
+import { eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
-import type {
-  BetterAuthPlugin,
-  HookEndpointContext,
-  MiddlewareInputContext,
-} from "better-auth";
 import {
   Account,
   BASE_FEE,
@@ -13,16 +15,10 @@ import {
   Transaction,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import {
-  APIError,
-  createAuthEndpoint,
-  sessionMiddleware,
-} from "better-auth/api";
-import { createAuthMiddleware } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-
-import { session as Session } from "@acme/db/schema";
+import { session as Session } from "../schema/auth";
+import { CustodialService } from "../custodial-service";
+import { StellarAuthError } from "../errors";
 
 export type StellarPluginOptions = {
   network: "PUBLIC" | "TESTNET" | { passphrase: string };
@@ -51,17 +47,17 @@ export const stellar = (opts: StellarPluginOptions) => {
   }
   if (!opts.serverSecret || typeof opts.serverSecret !== "string") {
     throw new Error(
-      "stellar plugin: STELLAR_SERVER_SECRET (serverSecret) is missing or not a string",
+      "stellar plugin: STELLAR_SERVER_SECRET (serverSecret) is missing or not a string"
     );
   }
   if (!opts.webAuthDomain || !opts.homeDomain) {
     throw new Error(
-      "stellar plugin: WEB_AUTH_DOMAIN and HOME_DOMAIN are required",
+      "stellar plugin: WEB_AUTH_DOMAIN and HOME_DOMAIN are required"
     );
   }
   if (!opts.emailDomainName) {
     throw new Error(
-      "stellar plugin: EMAIL_DOMAIN_NAME is required to generate fallback emails",
+      "stellar plugin: EMAIL_DOMAIN_NAME is required to generate fallback emails"
     );
   }
   const serverKeypair = Keypair.fromSecret(opts.serverSecret);
@@ -76,6 +72,33 @@ export const stellar = (opts: StellarPluginOptions) => {
 
   return {
     id: "stellar",
+    schema: {
+      session: {
+        fields: {
+          loginType: {
+            type: "string",
+            required: false,
+            input: true,
+          },
+        },
+      },
+      user: {
+        fields: {
+          stellarPublicKey: {
+            type: "string",
+            required: false,
+            input: false,
+          },
+          isCustodial: {
+            type: "boolean",
+            required: false,
+            defaultValue: false,
+            input: false,
+          },
+        },
+      },
+    },
+
     endpoints: {
       // GET /stellar/challenge?account=G...&client_domain=optional
       challenge: createAuthEndpoint(
@@ -106,7 +129,7 @@ export const stellar = (opts: StellarPluginOptions) => {
                   name: "web_auth_domain",
                   value: opts.webAuthDomain,
                   source: serverPublicKey,
-                }),
+                })
               )
               // home_domain — operation source = client account
               .addOperation(
@@ -114,7 +137,7 @@ export const stellar = (opts: StellarPluginOptions) => {
                   name: "home_domain",
                   value: opts.homeDomain,
                   source: account,
-                }),
+                })
               )
               // nonce — operation source = client account
               .addOperation(
@@ -122,7 +145,7 @@ export const stellar = (opts: StellarPluginOptions) => {
                   name: "nonce",
                   value: nonce,
                   source: account,
-                }),
+                })
               );
 
             if (client_domain) {
@@ -131,7 +154,7 @@ export const stellar = (opts: StellarPluginOptions) => {
                   name: "client_domain",
                   value: client_domain,
                   source: account,
-                }),
+                })
               );
             }
 
@@ -157,12 +180,15 @@ export const stellar = (opts: StellarPluginOptions) => {
               expiresAt: expiresAt.toISOString(),
             });
           } catch (e: any) {
-            ctx.context.logger.error("stellar_challenge_failed", e);
+            ctx.context.logger.error(
+              StellarAuthError.STELLAR_CHALLENGE_FAILED,
+              e
+            );
             throw new APIError("INTERNAL_SERVER_ERROR", {
-              message: "stellar_challenge_failed",
+              message: StellarAuthError.STELLAR_CHALLENGE_FAILED,
             });
           }
-        },
+        }
       ),
 
       // POST /stellar/verify
@@ -183,12 +209,16 @@ export const stellar = (opts: StellarPluginOptions) => {
             try {
               tx = new Transaction(xdr, networkPassphrase);
             } catch {
-              throw new APIError("BAD_REQUEST", { message: "invalid_xdr" });
+              throw new APIError("BAD_REQUEST", {
+                message: StellarAuthError.INVALID_XDR,
+              });
             }
 
             // Basic SEP-10 checks
             if (tx.source !== serverPublicKey) {
-              throw new APIError("BAD_REQUEST", { message: "invalid_source" });
+              throw new APIError("BAD_REQUEST", {
+                message: StellarAuthError.INVALID_SOURCE,
+              });
             }
             const seq: any = (tx as any).sequence;
             const isZeroSeq = String(seq) === "0";
@@ -230,7 +260,9 @@ export const stellar = (opts: StellarPluginOptions) => {
             const nonce = (nonceOp.value?.toString?.() ??
               nonceOp.value) as string;
             if (!nonce) {
-              throw new APIError("BAD_REQUEST", { message: "invalid_nonce" });
+              throw new APIError("BAD_REQUEST", {
+                message: StellarAuthError.INVALID_NONCE,
+              });
             }
 
             // Ensure nonce exists and is fresh, then consume it
@@ -244,7 +276,7 @@ export const stellar = (opts: StellarPluginOptions) => {
                 new Date(verification.expiresAt).valueOf() < Date.now())
             ) {
               throw new APIError("BAD_REQUEST", {
-                message: "nonce_not_found_or_expired",
+                message: StellarAuthError.NONCE_NOT_FOUND_OR_EXPIRED,
               });
             }
             await ctx.context.adapter.delete({
@@ -257,8 +289,8 @@ export const stellar = (opts: StellarPluginOptions) => {
             const serverVerified = tx.signatures.some((sig: any) =>
               Keypair.fromPublicKey(serverPublicKey).verify(
                 hash,
-                sig.signature(),
-              ),
+                sig.signature()
+              )
             );
             if (!serverVerified) {
               throw new APIError("BAD_REQUEST", {
@@ -266,7 +298,7 @@ export const stellar = (opts: StellarPluginOptions) => {
               });
             }
             const clientVerified = tx.signatures.some((sig: any) =>
-              Keypair.fromPublicKey(account).verify(hash, sig.signature()),
+              Keypair.fromPublicKey(account).verify(hash, sig.signature())
             );
             if (!clientVerified) {
               throw new APIError("BAD_REQUEST", {
@@ -279,7 +311,7 @@ export const stellar = (opts: StellarPluginOptions) => {
             let linked =
               await ctx.context.internalAdapter.findAccountByProviderId(
                 account,
-                providerId,
+                providerId
               );
             let userId: string;
             if (linked) {
@@ -294,7 +326,7 @@ export const stellar = (opts: StellarPluginOptions) => {
                   emailVerified: true,
                   stellarPublicKey: account,
                 },
-                ctx,
+                ctx
               );
               if (!createdUser) {
                 throw new APIError("UNPROCESSABLE_ENTITY", {
@@ -309,21 +341,19 @@ export const stellar = (opts: StellarPluginOptions) => {
                   accountId: account,
                   scope: networkPassphrase, // store network for reference
                 },
-                ctx,
+                ctx
               );
             }
 
             const session = await ctx.context.internalAdapter.createSession(
               userId,
-              ctx,
+              ctx
             );
 
             await opts.db
               .update(Session)
               .set({ loginType: wallet_type || "stellar" })
               .where(eq(Session.id, session.id));
-
-            // console.log("verify session", session);
 
             if (!session) {
               throw new APIError("INTERNAL_SERVER_ERROR", {
@@ -336,7 +366,7 @@ export const stellar = (opts: StellarPluginOptions) => {
               ctx.context.authCookies.sessionToken.name,
               session.token,
               ctx.context.secret,
-              ctx.context.authCookies.sessionToken.options,
+              ctx.context.authCookies.sessionToken.options
             );
 
             return ctx.json({ status: true });
@@ -347,10 +377,9 @@ export const stellar = (opts: StellarPluginOptions) => {
               message: "stellar_verify_failed",
             });
           }
-        },
+        }
       ),
 
-      // POST /stellar/sign-custodial
       signCustodial: createAuthEndpoint(
         "/stellar/sign-custodial",
         {
@@ -362,7 +391,6 @@ export const stellar = (opts: StellarPluginOptions) => {
           }),
         },
         async (ctx) => {
-          // console.log("here i", ctx.s);
           try {
             const { xdr } = ctx.body;
 
@@ -370,77 +398,66 @@ export const stellar = (opts: StellarPluginOptions) => {
             const session = ctx.context.session;
             if (!session?.user) {
               throw new APIError("UNAUTHORIZED", {
-                message: "not_authenticated",
+                message: StellarAuthError.NOT_AUTHENTICATED,
               });
             }
 
             // Check if user has a custodial account
             if (!session.user.isCustodial || !session.user.email) {
               throw new APIError("BAD_REQUEST", {
-                message: "not_custodial_account",
+                message: StellarAuthError.NOT_CUSTODIAL_ACCOUNT,
               });
             }
 
-            return;
-            // Import CustodialService here or make it accessible
-            // For now, I'll assume you'll import it at the top of this file
-            const signedXdr = "ami"; // await CustodialService.signTransaction(
-            // session.user.email,
-            // xdr,
-            // );
+            // Get user's custodial public key if not in session
+            let publicKey = session.user.stellarPublicKey;
+            if (!publicKey) {
+              publicKey = await CustodialService.getOrCreatePublicKey(
+                session.user.email
+              );
+            }
+
+            // Sign the transaction using custodial service
+            const signedXdr = await CustodialService.signTransaction(
+              session.user.email,
+              publicKey,
+              xdr
+            );
 
             return ctx.json({
               signedXdr,
-              publicKey: session.user.stellarPublicKey,
+              publicKey,
             });
           } catch (e: any) {
-            ctx.context.logger.error("stellar_custodial_sign_failed", e);
+            ctx.context.logger.error(
+              StellarAuthError.CUSTODIAL_SIGNING_FAILED,
+              e
+            );
+
+            // Handle specific custodial service errors
+            if (e.message === StellarAuthError.CUSTODIAL_USER_NOT_FOUND) {
+              throw new APIError("NOT_FOUND", {
+                message: StellarAuthError.CUSTODIAL_USER_NOT_FOUND,
+              });
+            }
+            if (e.message === StellarAuthError.CUSTODIAL_UNAUTHORIZED) {
+              throw new APIError("UNAUTHORIZED", {
+                message: StellarAuthError.CUSTODIAL_UNAUTHORIZED,
+              });
+            }
+            if (e.message === StellarAuthError.CUSTODIAL_BAD_REQUEST) {
+              throw new APIError("BAD_REQUEST", {
+                message: StellarAuthError.CUSTODIAL_BAD_REQUEST,
+              });
+            }
+
             if (e instanceof APIError) throw e;
             throw new APIError("INTERNAL_SERVER_ERROR", {
-              message: "custodial_signing_failed",
+              message: StellarAuthError.CUSTODIAL_SIGNING_FAILED,
             });
           }
-        },
+        }
       ),
-    },
-    hooks: {
-      after: [
-        {
-          matcher: (ctx: HookEndpointContext) => ctx.path === "/stellar/verify",
-          handler: createAuthMiddleware(async (ctx) => {
-            // console.log("ctx xxx", ctx);
-            try {
-              const session = ctx.context.newSession;
-              // console.log("session", session);
-              if (session?.user?.id) {
-                const userId = session.user.id;
-                const body = ctx.body as any;
-                const publicKey = body.account;
-                const loginType = body.wallet_type || "stellar";
-                const isCustodial = false;
-
-                if (ctx.context.newSession?.session?.id) {
-                  await opts.db
-                    .update(Session)
-                    .set({ loginType })
-                    .where(eq(Session.id, ctx.context.newSession.session.id));
-                }
-
-                await ctx.context.internalAdapter.updateUser(userId, {
-                  stellarPublicKey: publicKey,
-                  isCustodial,
-                });
-
-                console.log(
-                  `User ${userId} logged in via ${loginType} with Stellar key: ${publicKey}`,
-                );
-              }
-            } catch (error) {
-              ctx.context.logger.error("stellar_after_hook_failed", error);
-            }
-          }),
-        },
-      ],
     },
   } satisfies BetterAuthPlugin;
 };

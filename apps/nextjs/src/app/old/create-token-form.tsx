@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { signTransaction } from "auth-client";
 import { Loader2 } from "lucide-react";
 
+import { signTransaction } from "@acme/auth";
 import { Button } from "@acme/ui/button";
 
 import { authClient } from "~/auth/client";
@@ -23,7 +23,6 @@ export function TestTokenCreate({ pubkey }: { pubkey?: string }) {
           // address: pubkey,
           // networkPassphrase: "testnet",
           // walletId: "albedo",
-          // @ts-expect-error type error
           authClient: authClient,
           xdr: data,
         });
