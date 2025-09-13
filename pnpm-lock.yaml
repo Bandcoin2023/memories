@@ -75,6 +75,9 @@ importers:
       '@acme/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@acme/common':
+        specifier: workspace:*
+        version: link:../../packages/common
       '@acme/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -178,6 +181,9 @@ importers:
       '@acme/auth':
         specifier: workspace:*
         version: link:../auth
+      '@acme/common':
+        specifier: workspace:*
+        version: link:../common
       '@acme/db':
         specifier: workspace:*
         version: link:../db
@@ -267,6 +273,8 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+
+  packages/common: {}
 
   packages/db:
     dependencies:
