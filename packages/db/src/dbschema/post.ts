@@ -1,8 +1,6 @@
-import { index, sqliteTableCreator } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
 
-const createTable = sqliteTableCreator((name) => name);
+import { createTable } from "./utils";
 
 export const Post = createTable("post", (d) => ({
   id: d.text().primaryKey().$defaultFn(crypto.randomUUID),
