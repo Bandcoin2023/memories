@@ -7,6 +7,7 @@ import { signTransaction } from "@acme/auth";
 import { Button } from "@acme/ui/button";
 
 import { authClient } from "~/auth/client";
+import { honoClient } from "~/trpc/hc";
 import { useTRPC } from "~/trpc/react";
 
 export function TestTokenCreate({ pubkey }: { pubkey?: string }) {
@@ -21,6 +22,12 @@ export function TestTokenCreate({ pubkey }: { pubkey?: string }) {
           signTransaction({ xdr, authClient })
             .then((signedXdr) => {
               console.log("Signed XDR:", signedXdr);
+              honoClient.trxs.$post({
+                form: {
+                  signedXdr: signedXdr ?? "",
+                },
+              });
+
               queryClient.invalidateQueries({ queryKey: ["auth.getSession"] });
             })
             .catch((error) => {

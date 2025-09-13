@@ -34,16 +34,25 @@ const route = app
       );
     },
   )
-  .post("/trxs", zValidator("form", z.object({})), (c) => {
-    // ...
-    return c.json(
-      {
-        ok: true,
-        message: "Created!",
-      },
-      201,
-    );
-  });
+  .post(
+    "/trxs",
+    zValidator("form", z.object({ signedXdr: z.string() })),
+    (c) => {
+      const signedXdr = c.req.valid("form").signedXdr;
+      // submit to stellar network...
+
+      // database update...
+      //
+
+      return c.json(
+        {
+          ok: true,
+          message: "Created!",
+        },
+        201,
+      );
+    },
+  );
 
 // Mount the transaction router
 const appRouter = app.route("/trx", trxRouter);
