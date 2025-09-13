@@ -78,6 +78,9 @@ importers:
       '@acme/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@acme/hono':
+        specifier: workspace:*
+        version: link:../../packages/hono
       '@acme/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -310,6 +313,9 @@ importers:
 
   packages/hono:
     dependencies:
+      '@hono/zod-validator':
+        specifier: ^0.7.2
+        version: 0.7.2(hono@4.9.5)(zod@4.1.5)
       hono:
         specifier: ^4.9.0
         version: 4.9.5
@@ -1353,6 +1359,12 @@ packages:
 
   '@hexagon/base64@1.1.28':
     resolution: {integrity: sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw==}
+
+  '@hono/zod-validator@0.7.2':
+    resolution: {integrity: sha512-ub5eL/NeZ4eLZawu78JpW/J+dugDAYhwqUIdp9KYScI6PZECij4Hx4UsrthlEUutqDDhPwRI0MscUfNkvn/mqQ==}
+    peerDependencies:
+      hono: '>=3.9.0'
+      zod: ^3.25.0 || ^4.0.0
 
   '@hookform/resolvers@5.0.1':
     resolution: {integrity: sha512-u/+Jp83luQNx9AdyW2fIPGY6Y7NG68eN2ZW8FOJYL+M0i4s49+refdJdOp/A9n9HFQtQs3HIDHQvX3ZET2o7YA==}
@@ -8184,6 +8196,11 @@ snapshots:
   '@floating-ui/utils@0.2.9': {}
 
   '@hexagon/base64@1.1.28': {}
+
+  '@hono/zod-validator@0.7.2(hono@4.9.5)(zod@4.1.5)':
+    dependencies:
+      hono: 4.9.5
+      zod: 4.1.5
 
   '@hookform/resolvers@5.0.1(react-hook-form@7.57.0(react@19.0.0))':
     dependencies:

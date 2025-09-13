@@ -7,46 +7,13 @@ import { signTransaction } from "@acme/auth";
 import { Button } from "@acme/ui/button";
 
 import { authClient } from "~/auth/client";
-import { createToken } from "~/lib/stellar/create-token";
 import { useTRPC } from "~/trpc/react";
 
 export function TestTokenCreate({ pubkey }: { pubkey?: string }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const testTransection = useMutation({
-    mutationFn: createToken,
-
-    onSuccess: (data) => {
-      if (pubkey && data) {
-        const signedXdr = signTransaction({
-          // address: pubkey,
-          // networkPassphrase: "testnet",
-          // walletId: "albedo",
-          authClient: authClient,
-          xdr: data,
-        });
-      }
-      console.log("here", data);
-    },
-    onError: (error) => {
-      console.error("Error creating token:", error.message);
-    },
-  });
-
-  const signCustodial = async () => {
-    const data = await createToken();
-    const res = await fetch("/api/auth/stellar/sign-custodial", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ xdr: data }),
-    });
-
-    const dataM = await res.bytes();
-    console.log("vong", dataM);
-  };
+  const testTransection = useMutation(trpc.post.create.mutationOptions());
 
   return (
     <div>
@@ -58,4 +25,7 @@ export function TestTokenCreate({ pubkey }: { pubkey?: string }) {
       </Button>
     </div>
   );
+}
+function createToken(variables: void): Promise<unknown> {
+  throw new Error("Function not implemented.");
 }

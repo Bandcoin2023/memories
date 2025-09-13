@@ -1,6 +1,7 @@
 {
-  "name": "aws-hono",
+  "name": "@acme/hono",
   "type": "module",
+  "main": "index.ts",
   "scripts": {
     "build": "esbuild --bundle --outfile=./dist/index.js --platform=node --target=node20 ./src/index.ts",
     "zip": "zip -j lambda.zip dist/index.js",
@@ -14,6 +15,7 @@
     "npm-run-all2": "^6.2.0"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.7.2",
     "hono": "^4.9.0",
     "sst": "v3.9.2",
     "zod": "^4.0.17"

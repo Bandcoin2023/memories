@@ -1,7 +1,4 @@
 import {
-  Account,
-  Address,
-  Asset,
   Horizon,
   Keypair,
   Networks,
@@ -10,7 +7,6 @@ import {
 } from "@stellar/stellar-sdk";
 
 export async function createToken() {
-  console.log("Creating token...", process.env.MOTHER_SECRET);
   try {
     const server = new Horizon.Server("https://horizon-testnet.stellar.org"); // Use mainnet for production
     const issuerKeypair = Keypair.random(); // Generate a new keypair for the issuer
@@ -37,7 +33,6 @@ export async function createToken() {
     transaction.sign(issuerKeypair);
 
     const xdr = transaction.toXDR();
-    console.log("xdr", xdr);
     return xdr;
   } catch (error) {
     console.log(error);
