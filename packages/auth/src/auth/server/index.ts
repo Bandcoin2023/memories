@@ -1,16 +1,19 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { stellar } from "./plugins/stellar";
 import { createAuthMiddleware, jwt } from "better-auth/plugins";
-import { session as Session } from "./schema/auth";
 import { eq } from "drizzle-orm";
+
+import { db as Database } from "@acme/db/client";
+
 import { CustodialService } from "./custodial-service";
+import { stellar } from "./plugins/stellar";
+import { session as Session } from "./schema/auth";
 
 // import { expo } from "@better-auth/expo";
 
 // Custodial server service
 
-export const createAuth = (db: any) =>
+export const createAuth = (db: typeof Database) =>
   betterAuth({
     // Register Stellar plugin (minimal SEP-10)
     plugins: [
@@ -149,7 +152,7 @@ export const createAuth = (db: any) =>
                 const existingLink =
                   await ctx.context.internalAdapter.findAccountByProviderId(
                     publicKey,
-                    "stellar-custodial"
+                    "stellar-custodial",
                   );
 
                 if (!existingLink) {
@@ -163,7 +166,7 @@ export const createAuth = (db: any) =>
               }
 
               console.log(
-                `User ${userId} logged in via ${loginType} with Stellar key: ${publicKey}`
+                `User ${userId} logged in via ${loginType} with Stellar key: ${publicKey}`,
               );
             }
           } catch (error) {

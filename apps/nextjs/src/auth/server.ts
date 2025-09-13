@@ -21,9 +21,7 @@ const baseUrl =
 //   secret: process.env.AUTH_SECRET,
 // });
 
-export const auth = createAuth({
-  db,
-});
+export const auth = createAuth(db);
 
 export const getSession = cache(async () =>
   auth.api.getSession({ headers: await headers() }),
