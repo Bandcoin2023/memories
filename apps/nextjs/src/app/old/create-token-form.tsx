@@ -3,30 +3,37 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
-import { testAdd } from "@acme/common";
+import { signTransaction } from "@acme/auth";
 import { Button } from "@acme/ui/button";
 
+import { authClient } from "~/auth/client";
 import { useTRPC } from "~/trpc/react";
 
 export function TestTokenCreate({ pubkey }: { pubkey?: string }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const testTransaction = useMutation(trpc.post.create.mutationOptions());
+  const testTransaction = useMutation(
+    trpc.trx.getXdr.mutationOptions({
+      onSuccess: (xdr) => {
+        console.log("XDR:", xdr);
+        if (xdr) {
+          signTransaction({ xdr, authClient })
+            .then((signedXdr) => {
+              console.log("Signed XDR:", signedXdr);
+              queryClient.invalidateQueries({ queryKey: ["auth.getSession"] });
+            })
+            .catch((error) => {
+              console.error("Error signing transaction:", error);
+            });
+        }
+      },
+    }),
+  );
 
   return (
     <div>
-      <Button
-        onClick={() =>
-          testTransaction.mutate({
-            title: "Test Post",
-            content: "This is a test post.",
-            // Sign the transaction with the auth client
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-        }
-      >
+      <Button onClick={() => testTransaction.mutate()}>
         {testTransaction.isPending && (
           <Loader2 className="animate animate-spin" />
         )}

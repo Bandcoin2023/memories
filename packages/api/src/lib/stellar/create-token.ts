@@ -1,4 +1,5 @@
 import {
+  Asset,
   Horizon,
   Keypair,
   Networks,
@@ -6,30 +7,54 @@ import {
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
 
-export async function createToken() {
+export async function createToken({
+  userPublicKey,
+}: {
+  userPublicKey: string;
+}) {
   try {
-    const server = new Horizon.Server("https://horizon-testnet.stellar.org"); // Use mainnet for production
-    const issuerKeypair = Keypair.random(); // Generate a new keypair for the issuer
-    //   const asset = new Asset("MYTOKEN", issuerKeypair.publicKey()); // Create the asset
+    const server = new Horizon.Server("https://horizon-testnet.stellar.org");
+    const issuerKeypair = Keypair.random();
+    const asset = new Asset("VONGCONG", issuerKeypair.publicKey());
     const motherKeypair = Keypair.fromSecret(
       "SDVA7BUJHQCOD6F24WITFMHLD3CZ67MKYADVV273GW6DGKJXDFGYNRRH",
     );
 
-    // Build and submit a transaction to create the asset (e.g., by issuing to a distribution account)
-    const account = await server.loadAccount(motherKeypair.publicKey());
-    const transaction = new TransactionBuilder(account, {
+    // Load mother account
+    const motherAccount = await server.loadAccount(motherKeypair.publicKey());
+
+    // Create issuer account and establish trust
+    const transaction = new TransactionBuilder(motherAccount, {
       fee: "100",
-      networkPassphrase: Networks.TESTNET, // Use Networks.PUBLIC for mainnet
+      networkPassphrase: Networks.TESTNET,
     })
+      // Create issuer account
       .addOperation(
         Operation.createAccount({
           destination: issuerKeypair.publicKey(),
           startingBalance: "2",
         }),
       )
+
+      // User trusts the VONGCONG token
+      .addOperation(
+        Operation.changeTrust({
+          asset: asset,
+          source: userPublicKey,
+        }),
+      )
+      .addOperation(
+        Operation.payment({
+          destination: userPublicKey,
+          asset: asset,
+          amount: "1000",
+          source: issuerKeypair.publicKey(),
+        }),
+      )
       .setTimeout(30)
       .build();
 
+    // transaction.sign(motherKeypair);
     transaction.sign(issuerKeypair);
 
     const xdr = transaction.toXDR();
@@ -37,5 +62,4 @@ export async function createToken() {
   } catch (error) {
     console.log(error);
   }
-  //   const result = await server.submitTransaction(transaction);
 }

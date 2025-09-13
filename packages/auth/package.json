@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./server": "./src/auth/server/index.ts",
     "./middleware": "./src/middleware.ts",
     "./client": "./src/client.ts",
     "./env": "./env.ts",

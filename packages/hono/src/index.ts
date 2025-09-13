@@ -10,7 +10,7 @@ const app = new Hono();
 // CORS is handled by the AWS Lambda Function URL configuration in sst.config.ts
 
 app.get("/", (c) => {
-  return c.text("Hello Hono!" + JSON.stringify(process.env));
+  return c.text("Hello Hono!");
 });
 
 const route = app

@@ -4,4 +4,6 @@ import { ConnectModal } from "./auth/client/components/ConnectModal";
 import { signTransaction } from "./auth/client/stellar-sign";
 import { createAuth } from "./auth/server";
 
+export type { Auth } from "@acme/auth/server";
+
 export { createAuth, createClient, signTransaction, AuthModal, ConnectModal };
