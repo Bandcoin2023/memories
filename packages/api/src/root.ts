@@ -5,8 +5,8 @@ import { trxRouter } from "./router/trx";
 import { createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
-  // auth: authRouter,
-  // post: postRouter,
+  auth: authRouter,
+  post: postRouter,
   memory: memoryRouter,
   trx: trxRouter,
 });
